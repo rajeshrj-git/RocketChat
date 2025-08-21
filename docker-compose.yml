@@ -1,0 +1,47 @@
+version: "3.9"
+
+services:
+  mongo:
+    image: mongo:6.0
+    restart: unless-stopped
+    command: >
+      mongod --oplogSize 128 --replSet rs0 --storageEngine wiredTiger --bind_ip_all
+    volumes:
+      - ./data/db:/data/db
+    ports:
+      - 27017:27017
+
+  mongo-init-replica:
+    image: mongo:6.0
+    restart: "no"
+    depends_on:
+      - mongo
+    entrypoint: >
+      bash -c "
+        for i in {1..30}; do
+          mongosh --host mongo:27017 --eval '
+            rs.initiate({
+              _id: \"rs0\",
+              members: [{ _id: 0, host: \"mongo:27017\" }]
+            })
+          ' && break;
+          echo \"Retrying replica set init...\";
+          sleep 2;
+        done
+      "
+
+  rocketchat:
+    image: registry.rocket.chat/rocketchat/rocket.chat:7.9.3
+    restart: unless-stopped
+    depends_on:
+      - mongo
+      - mongo-init-replica
+    environment:
+      - PORT=4000
+      - ROOT_URL=http://localhost:4000
+      - MONGO_URL=mongodb://mongo:27017/rocketchat?replicaSet=rs0
+      - MONGO_OPLOG_URL=mongodb://mongo:27017/local?replicaSet=rs0
+    ports:
+      - 4000:4000
+    volumes:
+      - ./uploads:/app/uploads

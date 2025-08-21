@@ -1,0 +1,24 @@
+# .dockerignore
+rocket.chat.tgz
+.git
+.gitignore
+README.md
+docker-compose.yml
+.dockerignore
+
+
+# Ignore MongoDB data
+data/
+
+# Ignore build bundles and archives
+bundle/
+*.tgz
+
+# Ignore uploads (if they’re runtime/user data)
+uploads/
+
+# Logs
+*.log
+
+# Node.js stuff (if present)
+node_modules/
